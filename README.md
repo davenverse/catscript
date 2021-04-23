@@ -34,15 +34,14 @@ the interpreter on the file, which I find useful.
 
 ### Available Interpreters
 
-Defaults to `IOApp.Simple`.
-
+Defaults to `IOApp.Simple`. Headers section is terminated by the first line which does not start with `//` excluding the `#!`
 #### IOApp.Simple
+
+Scala and Interpreter can both be left absent, in which case they default to
+`2.13.5` and `IOApp.Simple`.
 
 ```scala
 #!/usr/bin/env catscript
-// interpreter: IOApp.Simple
-// scala: 3.0.0-RC2
-
 import cats.effect._
 import cats.effect.std.Console
 

@@ -54,8 +54,7 @@ object Arguments {
 
 // Optional #!
 // Uninterrupted section of comments broken by newlines
-// Terminated by /n/n or /r/n/r/n
-// name/scala/sbt/interpreter/dependency headers defined
+// Rest is the body
 object Parser {
   def simpleParser(inputText: String): Either[Throwable, (List[(String, String)], String)] = Either.catchNonFatal{
     val text = {
@@ -66,14 +65,9 @@ object Parser {
         out
       } else base
     }
-    // println(s"Text: $text")
-    val (startText, restText) = {
-      val idx = text.indexOf("\n\n")
-      if (idx == -1) throw new Throwable("No Headers Found Require name/scala/interpreter")
-      else text.splitAt(idx)
-    }
-    val headersLines = fs2.Stream(startText)
+    val lines = fs2.Stream(text)
       .through(fs2.text.lines)
+    val headersLines = lines
       .takeWhile(_.startsWith("//"))
       .filter(x => x.contains(":")) // Comments are allowed that dont follow x:z
       .compile
@@ -85,7 +79,12 @@ object Parser {
         val value = s.slice(idx + 1, s.length())
         (header, value)
     }
-    (headers, restText.drop(2))
+    val restText = lines
+      .dropWhile(_.startsWith("//"))
+      .intersperse("\n")
+      .compile
+      .string
+    (headers, restText)
   }
 
 
@@ -125,7 +124,7 @@ object Config {
 
   // TODO Interpreter
   def configFromHeaders(headers: List[(String, String)]): Config = {
-    val scala = headers.findLast(_._1.toLowerCase() === "scala").map(_._2.trim()).getOrElse("2.13.2")
+    val scala = headers.findLast(_._1.toLowerCase() === "scala").map(_._2.trim()).getOrElse("2.13.5")
     val sbt = headers.findLast(_._1.toLowerCase() === "sbt").map(_._2.trim()).getOrElse("1.5.0")
     val interpreter = headers.findLast(_._1.toLowerCase() === "interpreter")
       .map(_._2.trim())
@@ -243,11 +242,11 @@ object Files {
     val stage = Resource.make(IO(process.Process(s"sbt stage", sbtFolder.toFile()).run(logger)))(s => IO(s.destroy())).use(i => IO(i.exitValue()))
     stage.flatMap{
       case 0 => IO.unit
-      case otherwise => 
+      case _ => 
         val standardOut = so.toList
         standardOut.traverse_[IO, Unit](s => 
           cats.effect.std.Console.make[IO].println(s)
-        ) >> IO(System.exit(otherwise)) // TODO - Maybe too aggresive here
+        ) >> IO.raiseError(new RuntimeException("sbt staging failed") with scala.util.control.NoStackTrace)
     }
   }
 
