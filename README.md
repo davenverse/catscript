@@ -28,3 +28,24 @@ import cats.effect.std.Console
 
 def run: IO[Unit] = Console[IO].println("Hello world!!!")
 ```
+
+### Available Interpreters
+
+- `IOApp.Simple` - `def run: IO[Unit]`
+- `IOApp` - `def run(args: List[String]): IO[ExitCode]`
+- `App` - Works like a worksheet, entire script is within `def main(args: Array[String]): Unit`
+- `Raw` - Takes your code and places it there with no enhancements, your code must have a MainClass
+
+Defaults to `IOApp.Simple`.
+
+### VSCode Highlighting
+
+Note the catscript extension is entirely arbitrary. Any file will work, but having an extension
+makes recognizing files that use this format easier, and will allow syntax highlighting.
+
+settings.json
+```
+"files.associations": {
+    "*.catscript": "scala",
+}
+```
