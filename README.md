@@ -9,10 +9,14 @@
 
 ```sh
 # Coursier and SBT are Pre-requisites
+cs install --channel https://git.io/JODPU catscript
+# Longer Form 
+cs install --channel https://gist.githubusercontent.com/ChristopherDavenport/82b779ed43f779d7db05d4382677bec5/raw/catscript.json catscript
+
+# Manually
 cs fetch io.chrisdavenport:catscript_2.13:latest.release
 cs bootstrap io.chrisdavenport:catscript_2.13:latest.release -o catscript
 # Catscript is now an executable in this directory, place to a location on $PATH
-# TODO Get a working cs install command so this can be automatic
 ```
 
 Then write apps as simply as
