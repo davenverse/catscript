@@ -95,6 +95,16 @@ object Main {
 }
 ```
 
+### Script Headers
+
+- `scala`: Sets the Scala Version, last header wins. `scala: 3.0.0-RC2`
+- `sbt`: Sets the SBT Version, last header wins `sbt: 1.5.0`
+- `interpreter`: Sets which interpreter to use, last header wins. `interpreter: IOApp.Simple`
+- `dependency`: Repeating Header, allows you to set libraryDependencies for the script. `dependency: "org.http4s" %% "http4s-ember-client" % "1.0.0-M21"`
+- `scalac`: Repeating Header, allows you to set scalaOptions for the script. `scalac: -language:higherKinds`
+- `compiler-plugin`: Repeating Header, allows you to add compiler plugins. `compiler-plugin: "org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full`
+- `sbt-plugin`: Repeating Header, allows you to add sbt plugins. `sbt-plugin: "io.github.davidgregory084" % "sbt-tpolecat" % "0.1.16"`
+
 ### VSCode Highlighting
 
 Note the `.catscript` extension is entirely arbitrary. Any file will work, but having an extension

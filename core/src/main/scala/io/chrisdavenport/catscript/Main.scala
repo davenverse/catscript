@@ -156,7 +156,7 @@ object Files {
     |name := "script"
     |enablePlugins(JavaAppPackaging)
     |
-    |${config.scalacOptions.map(s => s"scalacOptions += $s").intercalate("\n")}
+    |${config.scalacOptions.map(s => s"""scalacOptions += "$s" """).intercalate("\n")}
     |${config.compilerPlugins.map(s => s"addCompilerPlugin($s)").intercalate("\n")}
     |$fs2Maybe
     |${config.dependencies.map(s => s"libraryDependencies += $s").intercalate("\n")}
