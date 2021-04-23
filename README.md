@@ -81,7 +81,8 @@ println("Hi There!")
 #### Raw
 
 Takes your code and places it there with no enhancements, you're responsible
-for initiating your own MainClass that has a `main`.
+for initiating your own MainClass that has a `main`. Top-Level Declarations
+depend on the version of scala whether or not those are allowed.
 
 ```scala
 #!./usr/bin/env catscript
@@ -97,7 +98,7 @@ object Main {
 
 ### VSCode Highlighting
 
-Note the catscript extension is entirely arbitrary. Any file will work, but having an extension
+Note the `.catscript` extension is entirely arbitrary. Any file will work, but having an extension
 makes recognizing files that use this format easier, and will allow syntax highlighting.
 
 settings.json
