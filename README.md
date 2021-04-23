@@ -6,7 +6,7 @@
 
 ```sh
 # Coursier and SBT are Pre-requisites
-cs fetch io.chrisdavenport:catscript_2.13:0.0.1
+cs fetch io.chrisdavenport:catscript_2.13:latest.release
 cs bootstrap io.chrisdavenport:catscript_2.13:latest.release -o catscript
 # Catscript is now an executable in this directory, place to a location on $PATH
 # TODO Get a working cs install command so this can be automatic
