@@ -1,8 +1,11 @@
 # catscript - Cats Scripting [![Build Status](https://travis-ci.com/ChristopherDavenport/catscript.svg?branch=master)](https://travis-ci.com/ChristopherDavenport/catscript) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12) ![Code of Consuct](https://img.shields.io/badge/Code%20of%20Conduct-Scala-blue.svg)
 
-## [Head on over to the microsite](https://ChristopherDavenport.github.io/catscript)
+
 
 ## Quick Start
+
+- [Install Coursier if you don't already have it](https://get-coursier.io/docs/cli-installation.html#native-launcher)
+- [Install SBT if you don't already have it](https://www.scala-sbt.org/release/docs/Installing-sbt-on-Mac.html) or via `cs install sbt-launcher`
 
 ```sh
 # Coursier and SBT are Pre-requisites
