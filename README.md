@@ -38,7 +38,16 @@ Defaults to `IOApp.Simple`.
 
 #### IOApp.Simple
 
-See Above
+```scala
+#!/usr/bin/env catscript
+// interpreter: IOApp.Simple
+// scala: 3.0.0-RC2
+
+import cats.effect._
+import cats.effect.std.Console
+
+def run: IO[Unit] = Console[IO].println("Hello world!!!")
+```
 
 #### IOApp
 
@@ -52,7 +61,9 @@ Args are whatever you invoke the file with and should work correctly.
 import cats.effect._
 import cats.effect.std.Console
 
-def run(args: List[String]): IO[ExitCode] = Console[IO].println(s"Received $args- Hello from IOApp").as(ExitCode.Success)
+def run(args: List[String]): IO[ExitCode] = 
+  Console[IO].println(s"Received $args- Hello from IOApp")
+    .as(ExitCode.Success)
 ```
 
 #### App
@@ -69,7 +80,8 @@ println("Hi There!")
 
 #### Raw
 
-Takes your code and places it there with no enhancements, your code must have a MainClass
+Takes your code and places it there with no enhancements, you're responsible
+for initiating your own MainClass that has a `main`.
 
 ```scala
 #!./usr/bin/env catscript
