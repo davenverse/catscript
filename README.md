@@ -29,14 +29,59 @@ import cats.effect.std.Console
 def run: IO[Unit] = Console[IO].println("Hello world!!!")
 ```
 
+SheBangs are optional, but make it so you can execute the files, rather than invoke
+the interpreter on the file, which I find useful.
+
 ### Available Interpreters
 
-- `IOApp.Simple` - `def run: IO[Unit]`
-- `IOApp` - `def run(args: List[String]): IO[ExitCode]`
-- `App` - Works like a worksheet, entire script is within `def main(args: Array[String]): Unit`
-- `Raw` - Takes your code and places it there with no enhancements, your code must have a MainClass
-
 Defaults to `IOApp.Simple`.
+
+#### IOApp.Simple
+
+See Above
+
+#### IOApp
+
+Args are whatever you invoke the file with and should work correctly.
+
+```scala
+#!./usr/bin/env catscript
+// interpreter: IOApp
+// scala: 3.0.0-RC2
+
+import cats.effect._
+import cats.effect.std.Console
+
+def run(args: List[String]): IO[ExitCode] = Console[IO].println(s"Received $args- Hello from IOApp").as(ExitCode.Success)
+```
+
+#### App
+
+Works like a worksheet, entire script is within `def main(args: Array[String]): Unit`
+
+```scala
+#!./usr/bin/env catscript
+// interpreter: App
+// scala: 3.0.0-RC2
+
+println("Hi There!")
+```
+
+#### Raw
+
+Takes your code and places it there with no enhancements, your code must have a MainClass
+
+```scala
+#!./usr/bin/env catscript
+// interpreter: Raw
+// scala: 3.0.0-RC2
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("Your code, as requested")
+  }
+}
+```
 
 ### VSCode Highlighting
 
