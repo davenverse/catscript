@@ -1,4 +1,4 @@
-# catscript - Cats Scripting [![Build Status](https://travis-ci.com/ChristopherDavenport/catscript.svg?branch=master)](https://travis-ci.com/ChristopherDavenport/catscript) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12) ![Code of Consuct](https://img.shields.io/badge/Code%20of%20Conduct-Scala-blue.svg)
+# catscript - Cats Scripting [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.chrisdavenport/catscript_2.12) ![Code of Consuct](https://img.shields.io/badge/Code%20of%20Conduct-Scala-blue.svg)
 
 
 
@@ -17,7 +17,7 @@ cs bootstrap io.chrisdavenport:catscript_2.13:latest.release -o catscript
 
 Then write apps as simply as
 
-```
+```scala
 #!/usr/bin/env catscript
 // interpreter: IOApp.Simple
 // scala: 3.0.0-RC2
