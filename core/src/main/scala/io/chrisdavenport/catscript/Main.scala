@@ -318,22 +318,34 @@ object Files {
   }
 
   def stageExecutable[F[_]: Async](sbtFolder: java.nio.file.Path): F[Unit] = {
-    val so = new scala.collection.mutable.ListBuffer[String]
-    val logger = ProcessLogger(s => so.addOne(s), e => so.addOne(e))
-    val stage = Resource.make(Sync[F].delay(process.Process(s"sbt stage", sbtFolder.toFile()).run(logger)))(s => Sync[F].delay(s.destroy())).use(i => Sync[F].blocking(i.exitValue()))
-    stage.flatMap{
-      case 0 => Applicative[F].unit
+    val soCompile = new scala.collection.mutable.ListBuffer[String]
+    val loggerCompile = ProcessLogger(s => soCompile.addOne(s), e => soCompile.addOne(e))
+    val compile = Resource.make(Sync[F].delay(process.Process(s"sbt compile", sbtFolder.toFile()).run(loggerCompile)))(s => Sync[F].delay(s.destroy())).use(i => Async[F].delay(i.exitValue()))
+    
+    val soStage = new scala.collection.mutable.ListBuffer[String]
+    val loggerStage = ProcessLogger(s => soStage.addOne(s), e => soStage.addOne(e))
+    val stage = Resource.make(Sync[F].delay(process.Process(s"sbt stage", sbtFolder.toFile()).run(loggerStage)))(s => Sync[F].delay(s.destroy())).use(i => Async[F].delay(i.exitValue()))
+
+    compile.flatMap{
+      case 0 => stage.flatMap{
+        case 0 => Applicative[F].unit
+        case _ => 
+          val standardOut = soStage.toList
+          standardOut.traverse_[F, Unit](s => 
+            cats.effect.std.Console.make[F].println(s)
+          ) >> (new RuntimeException("sbt stage failed") with scala.util.control.NoStackTrace).raiseError
+      }
       case _ => 
-        val standardOut = so.toList
+        val standardOut = soCompile.toList
         standardOut.traverse_[F, Unit](s => 
           cats.effect.std.Console.make[F].println(s)
-        ) >> (new RuntimeException("sbt staging failed") with scala.util.control.NoStackTrace).raiseError
+        ) >> (new RuntimeException("sbt compile failed") with scala.util.control.NoStackTrace).raiseError
     }
   }
 
   def executeExecutable[F[_]: Async](stageDirectory: java.nio.file.Path, scriptArgs: List[String]): F[Unit] = {
     val p = stageDirectory.resolve("bin").resolve("script")
-    def execute = Resource.make(Sync[F].delay(process.Process(s"${p.toString} ${scriptArgs.mkString(" ")}").run()))(s => Sync[F].delay(s.destroy())).use(i => Sync[F].blocking(i.exitValue()))
+    def execute = Resource.make(Sync[F].delay(process.Process(s"${p.toString} ${scriptArgs.mkString(" ")}").run()))(s => Sync[F].delay(s.destroy())).use(i => Sync[F].delay(i.exitValue()))
     execute.void
   }
 }

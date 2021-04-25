@@ -1,0 +1,22 @@
+#!./core/target/universal/stage/bin/catscript
+// dependency: "org.http4s" %% "http4s-ember-server" % "1.0.0-M21"
+// dependency: "org.http4s" %% "http4s-dsl" % "1.0.0-M21"
+import org.http4s.ember.server._
+import org.http4s.dsl.io._
+import org.http4s._
+import org.http4s.implicits._
+import cats.effect._
+
+val routes = HttpRoutes.of[IO]{
+  case GET -> Root => Ok("Hello World!")
+  case GET -> Root / "hello" / you => 
+    Ok(s"Hello $you")
+}
+
+def run = for {
+  _ <- EmberServerBuilder
+        .default[IO]
+	.withHttpApp(routes.orNotFound)
+        .build
+        .use(_ => IO.never)
+} yield ()
