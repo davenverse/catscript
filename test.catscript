@@ -6,5 +6,5 @@
 import cats.effect._
 import cats.effect.std.Console
 
-def run: IO[Unit] = Console[IO].println("Hello From IOApp.Simple!")
+def run: IO[Unit] = Console[IO].println(s"Hello From IOApp.Simple!")
 // def run(args: List[String]): IO[ExitCode] = Console[IO].println(s"Received $args- Hello from IOApp").as(ExitCode.Success)

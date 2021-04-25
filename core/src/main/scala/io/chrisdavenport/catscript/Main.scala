@@ -1,5 +1,6 @@
 package io.chrisdavenport.catscript
 
+import cats._
 import cats.syntax.all._
 import cats.effect._
 // import scala.concurrent.duration._
@@ -7,6 +8,9 @@ import java.nio.file.Paths
 import scala.sys.process
 import scala.sys.process.ProcessLogger
 import cats.ApplicativeThrow
+import java.nio.file.Path
+import scodec.bits.ByteVector
+import scala.util.control.NoStackTrace
 
 object Main extends IOApp {
   val console = cats.effect.std.Console.make[IO]
@@ -14,23 +18,99 @@ object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = {
     for {
       args <- Arguments.fromBaseArgs[IO](args)
-      path <- IO(Paths.get(args.file))
-      fileContent <- fs2.io.file.Files[IO].readAll(path, 512)
-        .through(fs2.text.utf8Decode)
-        .compile
-        .string
-      parsed <- Parser.simpleParser(fileContent).liftTo[IO]
-      config = Config.configFromHeaders(parsed._1)
-      _ <- fs2.io.file.Files[IO].tempDirectory().use(tempFolder => 
-        Files.createInFolder(tempFolder, config, parsed._2) >>
-        Files.stageExecutable(tempFolder) >>
-        Files.executeExecutable(tempFolder, args.scriptArgs)
-      )      
+      _ <- if (args.verbose) console.println(s"Interpreted: $args") else IO.unit
+      command = Command.fromArgs(args)
+      _ <- if (args.verbose) console.println(s"Found Command: $command") else IO.unit
+      _ <- Command.app[IO](command, args)
     } yield ExitCode.Success
   }
 }
+sealed trait Command
+object Command {
+  case object ClearCache extends Command
+  case object Script extends Command
+  case object Help extends Command
 
-case class Arguments(catsScriptArgs: List[String], file: String, scriptArgs: List[String])
+  def fromArgs(args: Arguments): Command = args.fileOrCommand match {
+    case "clear-cache" => ClearCache
+    case "help" => Help
+    case _ => 
+      if (args.catsScriptArgs.exists(_ === "-h") || args.catsScriptArgs.exists(_ === "--help")) Help
+      else Script
+  }
+
+  def app[F[_]: Async](command: Command, args: Arguments): F[Unit] = {
+    val console = cats.effect.std.Console.make[F]
+    command match {
+    case ClearCache => Cache.clearCache(args.verbose)
+    case Help => 
+      cats.effect.std.Console.make[F].println{
+        """catscript: catscript [--no-cache] (file | help | clear-cache) [script-args]
+        |Cats Scripting
+        |
+        |Options:
+        | --no-cache: Bypasses Caching Mechanism creating full project each run
+        | --verbose: Verbose
+        |
+        |Commands:
+        | help: Display this help text
+        | clear-cache: Clears all cached artifacts
+        | file: Script to run
+        |""".stripMargin
+      }
+    case Script => for {
+      filePath <- Sync[F].delay(Paths.get(args.fileOrCommand))
+      fileContent <- fs2.io.file.Files[F].readAll(filePath, 512)
+        .through(fs2.text.utf8Decode)
+        .compile
+        .string
+      parsed <- Parser.simpleParser(fileContent).liftTo[F]
+      config = Config.configFromHeaders(parsed._1)
+      _ <- if (args.verbose) console.println(s"Config Loaded: $config") else Applicative[F].unit
+      cacheStrategy <- Cache.determineCacheStrategy[F](args, filePath, fileContent)
+      _ <- if (args.verbose) console.println(s"Cache Strategy: $cacheStrategy") else Applicative[F].unit
+      _ <- cacheStrategy match {
+        case Cache.NoCache => 
+          fs2.io.file.Files[F].tempDirectory().use(tempFolder => 
+            Files.createInFolder(tempFolder, config, parsed._2) >>
+            Files.stageExecutable(tempFolder) >>
+            Files.executeExecutable(
+              tempFolder.resolve("target").resolve("universal").resolve("stage"),
+              args.scriptArgs
+            )
+          )     
+        case Cache.ReuseExecutable(cachedExecutableDirectory) => 
+          Files.executeExecutable(cachedExecutableDirectory, args.scriptArgs)
+        case Cache.NewCachedValue(cachedExecutableDirectory, fileContentSha) => 
+          fs2.io.file.Files[F].tempDirectory().use{tempFolder => 
+            val stageDir = tempFolder.resolve("target").resolve("universal").resolve("stage")
+            Files.createInFolder(tempFolder, config, parsed._2) >>
+            Files.stageExecutable[F](tempFolder) >>
+            fs2.Stream(fileContentSha).through(fs2.text.utf8Encode)
+              .through(fs2.io.file.Files[F].writeAll(stageDir.resolve("script_sha")))
+              .compile
+              .drain >>
+            fs2.io.file.Files[F].exists(cachedExecutableDirectory).ifM(
+              fs2.io.file.Files[F].deleteDirectoryRecursively(cachedExecutableDirectory),
+              Applicative[F].unit
+            ) >>
+            fs2.io.file.Files[F].createDirectories(cachedExecutableDirectory.getParent()) >>
+            fs2.io.file.Files[F].move(stageDir, cachedExecutableDirectory) >>
+            Files.executeExecutable(
+              cachedExecutableDirectory,
+              args.scriptArgs
+            )
+          }
+        }
+      } yield ()
+    }
+  }
+}
+
+case class Arguments(catsScriptArgs: List[String], fileOrCommand: String, scriptArgs: List[String]){
+  def verbose: Boolean = catsScriptArgs.exists(_ == "--verbose")
+  override def toString: String = s"Arguments(catscriptArgs=$catsScriptArgs, fileOrCommand=$fileOrCommand, scriptArgs=$scriptArgs)"
+}
 object Arguments {
   // [-options] file [script options]
   // All options for catscript MUST start with -
@@ -38,7 +118,7 @@ object Arguments {
   def fromBaseArgs[F[_]: ApplicativeThrow](args: List[String]): F[Arguments] = {
     if (args.isEmpty) new RuntimeException("No Arguments Provided - Valid File is Required").raiseError
     else {
-      val split = args.takeWhile(_.startsWith("-"))
+      val split = args.takeWhile(_.startsWith("-")).flatMap(s => s.split(" ").toList)
       val list = args.dropWhile(_.startsWith("-"))
       val nelO = list.toNel
       nelO match {
@@ -197,61 +277,167 @@ object Files {
     }
   }
 
-  def writeFile(file: java.nio.file.Path, text: String): IO[Unit] = {
+  def writeFile[F[_]: Async](file: java.nio.file.Path, text: String): F[Unit] = {
+    fs2.io.file.Files[F].deleteIfExists(file) >>
     fs2.Stream(text)
-    .covary[IO]
+    .covary[F]
     .through(fs2.text.utf8Encode)
     .through(
-      fs2.io.file.Files[IO].writeAll(file) //List(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+      fs2.io.file.Files[F].writeAll(file) //List(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
     ).compile.drain
   }
 
-  def createInFolder(sbtFolder: java.nio.file.Path, config: Config, script: String): IO[Unit] = {
-    val files = fs2.io.file.Files[IO]
+  def createInFolder[F[_]: Async](sbtFolder: java.nio.file.Path, config: Config, script: String): F[Unit] = {
+    val files = fs2.io.file.Files[F]
     val buildFile = Files.buildFile(config)
     val buildProperties = Files.buildProperties(config)
     val plugins = Files.pluginsFile(config)
     val main = Files.main(config, script)
     for {
       _ <- files.exists(sbtFolder).ifM(
-        IO.unit,
-        files.createDirectory(sbtFolder)
+        Applicative[F].unit,
+        files.createDirectory(sbtFolder).void
       )
       _ <- writeFile(Paths.get(sbtFolder.toString(), "build.sbt"), buildFile)
 
       project = Paths.get(sbtFolder.toString(), "project")
       _ <- files.exists(project).ifM(
-        IO.unit, 
-        files.createDirectory(project)
+        Applicative[F].unit, 
+        files.createDirectory(project).void
       )
       _ <- writeFile(Paths.get(sbtFolder.toString(), "project", "build.properties"), buildProperties)
       _ <- writeFile(Paths.get(sbtFolder.toString(), "project", "plugins.sbt"), plugins)
 
       scala = Paths.get(sbtFolder.toString(), "src", "main", "scala")
       _ <- files.exists(scala).ifM(
-        IO.unit,
-        files.createDirectories(scala)
+        Applicative[F].unit,
+        files.createDirectories(scala).void
       )
       _ <- writeFile(Paths.get(sbtFolder.toString(), "src", "main", "scala", "script.scala"), main)
     } yield ()
   }
 
-  def stageExecutable(sbtFolder: java.nio.file.Path): IO[Unit] = {
+  def stageExecutable[F[_]: Async](sbtFolder: java.nio.file.Path): F[Unit] = {
     val so = new scala.collection.mutable.ListBuffer[String]
     val logger = ProcessLogger(s => so.addOne(s), e => so.addOne(e))
-    val stage = Resource.make(IO(process.Process(s"sbt stage", sbtFolder.toFile()).run(logger)))(s => IO(s.destroy())).use(i => IO(i.exitValue()))
+    val stage = Resource.make(Sync[F].delay(process.Process(s"sbt stage", sbtFolder.toFile()).run(logger)))(s => Sync[F].delay(s.destroy())).use(i => Sync[F].blocking(i.exitValue()))
     stage.flatMap{
-      case 0 => IO.unit
+      case 0 => Applicative[F].unit
       case _ => 
         val standardOut = so.toList
-        standardOut.traverse_[IO, Unit](s => 
-          cats.effect.std.Console.make[IO].println(s)
-        ) >> IO.raiseError(new RuntimeException("sbt staging failed") with scala.util.control.NoStackTrace)
+        standardOut.traverse_[F, Unit](s => 
+          cats.effect.std.Console.make[F].println(s)
+        ) >> (new RuntimeException("sbt staging failed") with scala.util.control.NoStackTrace).raiseError
     }
   }
 
-  def executeExecutable(sbtFolder: java.nio.file.Path, scriptArgs: List[String]): IO[Unit] = {
-    def execute = Resource.make(IO(process.Process(s"$sbtFolder/target/universal/stage/bin/script ${scriptArgs.mkString(" ")}").run()))(s => IO(s.destroy())).use(i => IO(i.exitValue()))
+  def executeExecutable[F[_]: Async](stageDirectory: java.nio.file.Path, scriptArgs: List[String]): F[Unit] = {
+    val p = stageDirectory.resolve("bin").resolve("script")
+    def execute = Resource.make(Sync[F].delay(process.Process(s"${p.toString} ${scriptArgs.mkString(" ")}").run()))(s => Sync[F].delay(s.destroy())).use(i => Sync[F].blocking(i.exitValue()))
     execute.void
   }
+}
+
+object Cache {
+  // Cache Protocol
+  // --nocache disables caching entirely, run only in temp
+  // Cache Location determined by Operating System Specific if unable to determine falls back to nocache
+  // TODO Cache Flag, Environment Variable CATSCRIPT_CACHE
+  // Provided file is resolved to absolute location // TODO including resolving symlinks
+  // That absolute path is hashed through SHA-1 (this means we have 1 cache per file)
+  // We check the SHA-1 of the script body to `script_sha`, 
+  // if they match then the current executable present is reused
+  // otherwise create the temp directory create the project
+  // then copy the staged output into the location and write the current SHA-1 to script_sha
+  sealed trait CacheStrategy extends Product with Serializable
+  case object NoCache extends CacheStrategy
+  case class ReuseExecutable(cachedExecutableDirectory: Path) extends CacheStrategy
+  case class NewCachedValue(cachedExecutableDirectory: Path, fileContentSha: String) extends CacheStrategy
+  
+  def determineCacheStrategy[F[_]: Async](args: Arguments, filePath: Path, fileContent: String): F[CacheStrategy] = {
+    if (args.catsScriptArgs.exists(_ == "--no-cache")) NoCache.pure[F].widen
+    else getOS.flatMap{
+      case None => NoCache.pure[F].widen
+      case Some(os) => cacheLocation(os).flatMap{ path => 
+        import java.security.MessageDigest
+
+        Sync[F].delay{
+          val SHA1 = MessageDigest.getInstance("SHA-1")
+          val absolute = filePath.toAbsolutePath().toString()
+          val absolutePathSha = ByteVector.view(SHA1.digest(absolute.getBytes())).toHex
+          path.resolve(absolutePathSha)
+        }.flatMap{ cachedExecutableDirectory =>
+          val shaFile = cachedExecutableDirectory.resolve("script_sha")
+          fs2.io.file.Files[F].exists(shaFile).ifM(
+            {
+              for {
+                scriptSha <- fs2.io.file.Files[F].readAll(shaFile, 4096).through(fs2.text.utf8Decode).compile.string
+                testSha <- Sync[F].delay{
+                  val SHA1 = MessageDigest.getInstance("SHA-1")
+                  ByteVector.view(SHA1.digest(fileContent.getBytes())).toHex
+                }
+              } yield if (scriptSha === testSha) ReuseExecutable(cachedExecutableDirectory) else  NewCachedValue(cachedExecutableDirectory, testSha)
+            },
+            Sync[F].delay{
+              val SHA1 = MessageDigest.getInstance("SHA-1")
+              ByteVector.view(SHA1.digest(fileContent.getBytes())).toHex
+            }.map(NewCachedValue(cachedExecutableDirectory, _)).widen[CacheStrategy]
+          )
+        }
+      }
+    } 
+  }
+
+  def clearCache[F[_]: Async](verbose: Boolean): F[Unit] = {
+    val c = cats.effect.std.Console.make[F]
+    getOS.flatMap{
+      case None => 
+        (new RuntimeException("clear-cache cannot determine OS") with NoStackTrace).raiseError[F, Unit]
+      case Some(os) =>
+        cacheLocation(os).flatMap{ case cacheDirectory => 
+          fs2.io.file.Files[F].exists(cacheDirectory).ifM(
+            fs2.io.file.Files[F].walk(cacheDirectory, 1).drop(1).evalMap(path =>
+              fs2.io.file.Files[F].deleteDirectoryRecursively(path) >> 
+              { if (verbose) c.println(s"Deleted: $path") else Applicative[F].unit }
+            ).compile.drain,
+            Applicative[F].unit
+          )
+        }
+    }
+  }
+
+  sealed trait OS
+  case object Linux extends OS
+  case object OSX extends OS
+  case object Windows extends OS // O
+  // case object Solaris extends OS // Unsure where to cache so currently unsupported
+
+  // Can't determine OS, don't cache
+  private def getOS[F[_]: Sync]: F[Option[OS]] = {
+    Sync[F].delay(System.getProperty("os.name").toLowerCase).map{ 
+      // Linux, Unix, Aix
+      case linux if linux.contains("nux") || linux.contains("nix") || linux.contains("aix") => Linux.some
+      case mac if mac.contains("mac") => OSX.some 
+      case windows if windows.contains("win") => Windows.some
+      // case solaris if solaris.contains("sunos") => Solaris.some
+      case _ => None
+    }
+  }
+
+  // Mirroring Coursier Semantics
+  // on Linux, ~/.cache/catscript/v0. This also applies to Linux-based CI environments, and FreeBSD too.
+  // on OS X, ~/Library/Caches/Catscript/v0.
+  // on Windows, %LOCALAPPDATA%\Catscript\Cache\v0, which, for user Chris, typically corresponds to C:\Users\Chris\AppData\Local\Catscript\Cache\v1.
+  private def cacheLocation[F[_]: Sync](os: OS): F[java.nio.file.Path] = Sync[F].delay(os match {
+    case Linux => 
+      val home = System.getProperty("user.home")
+      Paths.get(s"$home/.cache/catscript/v0").toAbsolutePath
+    case OSX =>
+      val home = System.getProperty("user.home") 
+      Paths.get(s"$home/Library/Caches/Catscript/v0").toAbsolutePath
+    case Windows => 
+      val home = System.getProperty("user.home") 
+      Paths.get(home ++ """\Catscript\Cache\v0""").toAbsolutePath
+  })
+
 }

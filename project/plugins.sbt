@@ -4,7 +4,6 @@ addSbtPlugin("io.chrisdavenport" % "sbt-mima-version-check" % "0.1.2")
 addSbtPlugin("io.chrisdavenport" % "sbt-no-publish" % "0.1.0")
 
 addSbtPlugin("com.geirsson" % "sbt-ci-release" % "1.5.5")
-addSbtPlugin("ch.epfl.lamp" % "sbt-dotty" % "0.5.1")
 addSbtPlugin("com.codecommit" % "sbt-github-actions" % "0.9.5")
 
 addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.2.16")
