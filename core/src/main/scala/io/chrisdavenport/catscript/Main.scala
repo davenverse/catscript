@@ -409,8 +409,8 @@ object Cache {
   sealed trait OS
   case object Linux extends OS
   case object OSX extends OS
-  case object Windows extends OS // O
-  // case object Solaris extends OS // Unsure where to cache so currently unsupported
+  case object Windows extends OS
+  case object Solaris extends OS
 
   // Can't determine OS, don't cache
   private def getOS[F[_]: Sync]: F[Option[OS]] = {
@@ -419,7 +419,7 @@ object Cache {
       case linux if linux.contains("nux") || linux.contains("nix") || linux.contains("aix") => Linux.some
       case mac if mac.contains("mac") => OSX.some 
       case windows if windows.contains("win") => Windows.some
-      // case solaris if solaris.contains("sunos") => Solaris.some
+      case solaris if solaris.contains("sunos") => Solaris.some
       case _ => None
     }
   }
@@ -429,7 +429,7 @@ object Cache {
   // on OS X, ~/Library/Caches/Catscript/v0.
   // on Windows, %LOCALAPPDATA%\Catscript\Cache\v0, which, for user Chris, typically corresponds to C:\Users\Chris\AppData\Local\Catscript\Cache\v1.
   private def cacheLocation[F[_]: Sync](os: OS): F[java.nio.file.Path] = Sync[F].delay(os match {
-    case Linux => 
+    case Linux | Solaris => 
       val home = System.getProperty("user.home")
       Paths.get(s"$home/.cache/catscript/v0").toAbsolutePath
     case OSX =>
