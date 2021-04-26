@@ -109,6 +109,12 @@ object Main {
 - `compiler-plugin`: Repeating Header, allows you to add compiler plugins. `compiler-plugin: "org.typelevel" % "kind-projector" % "0.11.3" cross CrossVersion.full`
 - `sbt-plugin`: Repeating Header, allows you to add sbt plugins. `sbt-plugin: "io.github.davidgregory084" % "sbt-tpolecat" % "0.1.16"`
 
+### Commands
+
+- `catscript help` - Outputs help text
+- `catscript clear-cache` - Clears all cached artifacts
+- `catscript file` - Runs catscript against the provided file
+
 ### VSCode Highlighting
 
 Note the `.catscript` extension is entirely arbitrary. Any file will work, but having an extension

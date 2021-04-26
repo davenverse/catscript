@@ -45,12 +45,12 @@ object Command {
     case ClearCache => Cache.clearCache(args.verbose)
     case Help => 
       cats.effect.std.Console.make[F].println{
-        """catscript: catscript [--no-cache] (file | help | clear-cache) [script-args]
+        """catscript: catscript [--no-cache] [--compile-only] [--verbose] (file | help | clear-cache) [script-args]
         |Cats Scripting
         |
         |Options:
         | --no-cache: Bypasses caching mechanism creating full project each run
-        | --compile-only: Does not run script, just compiles and caches
+        | --compile-only: Does not run script, just compiles and caches stdout: cache-location
         | --verbose: Verbose
         |
         |Commands:
@@ -84,7 +84,7 @@ object Command {
             }
           )     
         case Cache.ReuseExecutable(cachedExecutableDirectory) => 
-          if (args.compileOnly) Applicative[F].unit
+          if (args.compileOnly) console.println(cachedExecutableDirectory)
           else Files.executeExecutable(cachedExecutableDirectory, args.scriptArgs)
         case Cache.NewCachedValue(cachedExecutableDirectory, fileContentSha) => 
           // Resource.eval(Sync[F].delay(Paths.get("test"))).use{ tempFolder => 
@@ -102,7 +102,7 @@ object Command {
             ) >>
             fs2.io.file.Files[F].createDirectories(cachedExecutableDirectory.getParent()) >>
             fs2.io.file.Files[F].move(stageDir, cachedExecutableDirectory) >> {
-              if (args.compileOnly) Applicative[F].unit
+              if (args.compileOnly) console.println(cachedExecutableDirectory)
               else 
                 Files.executeExecutable(
                   cachedExecutableDirectory,

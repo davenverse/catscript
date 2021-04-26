@@ -1,6 +1,7 @@
 #!./core/target/universal/stage/bin/catscript
 // dependency: "org.http4s" %% "http4s-ember-server" % "1.0.0-M21"
 // dependency: "org.http4s" %% "http4s-dsl" % "1.0.0-M21"
+// dependency: "ch.qos.logback" % "logback-classic" % "1.2.3",
 import org.http4s.ember.server._
 import org.http4s.dsl.io._
 import org.http4s._
