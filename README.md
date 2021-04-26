@@ -115,6 +115,13 @@ object Main {
 - `catscript clear-cache` - Clears all cached artifacts
 - `catscript file` - Runs catscript against the provided file
 
+### Options 
+
+- `--verbose` - turns on some logging of internal catscript processes.
+- `--no-cache` - Disables caching will recreate every time.
+- `--compile-only` - Does not execute the resulting executable. (Useful to confirm compilation)
+- `--sbt-output` - Puts the produced sbt project in this location rather than a temporary directory. (This is editor compliant and should allow you to debug with editor support and then bring your findings back to a script.)
+
 ### VSCode Highlighting
 
 Note the `.catscript` extension is entirely arbitrary. Any file will work, but having an extension

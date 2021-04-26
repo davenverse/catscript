@@ -50,7 +50,8 @@ object Command {
         |
         |Options:
         | --no-cache: Bypasses caching mechanism creating full project each run
-        | --compile-only: Does not run script, just compiles and caches stdout: cache-location
+        | --compile-only: Does not run script, just compiles and caches stdout: cache-location4
+        | --sbt-output: Puts the produced sbt project in this location rather than a temporary directory
         | --verbose: Verbose
         |
         |Commands:
@@ -72,7 +73,13 @@ object Command {
       _ <- if (args.verbose) console.println(s"Cache Strategy: $cacheStrategy") else Applicative[F].unit
       _ <- cacheStrategy match {
         case Cache.NoCache => 
-          fs2.io.file.Files[F].tempDirectory().use(tempFolder => 
+          args.sbtOutput.fold(fs2.io.file.Files[F].tempDirectory())(path => 
+            Resource.eval(Sync[F].delay(Paths.get(path)))
+          ).use{tempFolder =>
+            {
+              if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
+              else Applicative[F].unit
+            } >> 
             Files.createInFolder(tempFolder, config, parsed._2) >>
             Files.stageExecutable(tempFolder) >> {
               if (args.compileOnly) Applicative[F].unit
@@ -82,14 +89,20 @@ object Command {
                   args.scriptArgs
                 )
             }
-          )     
+          }
         case Cache.ReuseExecutable(cachedExecutableDirectory) => 
           if (args.compileOnly) console.println(cachedExecutableDirectory)
           else Files.executeExecutable(cachedExecutableDirectory, args.scriptArgs)
         case Cache.NewCachedValue(cachedExecutableDirectory, fileContentSha) => 
-          // Resource.eval(Sync[F].delay(Paths.get("test"))).use{ tempFolder => 
-          fs2.io.file.Files[F].tempDirectory().use{tempFolder => 
+          args.sbtOutput.fold(fs2.io.file.Files[F].tempDirectory())(path => 
+            Resource.eval(Sync[F].delay(Paths.get(path)))
+          ).use{tempFolder => 
             val stageDir = tempFolder.resolve("target").resolve("universal").resolve("stage")
+
+            {
+              if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
+              else Applicative[F].unit
+            } >>
             Files.createInFolder(tempFolder, config, parsed._2) >>
             Files.stageExecutable[F](tempFolder) >>
             fs2.Stream(fileContentSha).through(fs2.text.utf8Encode)
@@ -120,6 +133,9 @@ case class Arguments(catsScriptArgs: List[String], fileOrCommand: String, script
   val verbose: Boolean = catsScriptArgs.exists(_ == "--verbose")
   val noCache: Boolean = catsScriptArgs.exists(_ == "--no-cache")
   val compileOnly: Boolean = catsScriptArgs.exists(_ == "--compile-only")
+  private val sbtOutputPattern: scala.util.matching.Regex = "--sbt-output=(.*)".r
+  val sbtOutput: Option[String] = catsScriptArgs.collectFirstSome(s => sbtOutputPattern.findFirstMatchIn(s).map(_.group(1)))
+
   override def toString: String = s"Arguments(catscriptArgs=$catsScriptArgs, fileOrCommand=$fileOrCommand, scriptArgs=$scriptArgs)"
 }
 object Arguments {
