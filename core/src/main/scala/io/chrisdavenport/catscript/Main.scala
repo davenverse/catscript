@@ -49,7 +49,8 @@ object Command {
         |Cats Scripting
         |
         |Options:
-        | --no-cache: Bypasses Caching Mechanism creating full project each run
+        | --no-cache: Bypasses caching mechanism creating full project each run
+        | --compile-only: Does not run script, just compiles and caches
         | --verbose: Verbose
         |
         |Commands:
@@ -73,15 +74,20 @@ object Command {
         case Cache.NoCache => 
           fs2.io.file.Files[F].tempDirectory().use(tempFolder => 
             Files.createInFolder(tempFolder, config, parsed._2) >>
-            Files.stageExecutable(tempFolder) >>
-            Files.executeExecutable(
-              tempFolder.resolve("target").resolve("universal").resolve("stage"),
-              args.scriptArgs
-            )
+            Files.stageExecutable(tempFolder) >> {
+              if (args.compileOnly) Applicative[F].unit
+              else
+                Files.executeExecutable(
+                  tempFolder.resolve("target").resolve("universal").resolve("stage"),
+                  args.scriptArgs
+                )
+            }
           )     
         case Cache.ReuseExecutable(cachedExecutableDirectory) => 
-          Files.executeExecutable(cachedExecutableDirectory, args.scriptArgs)
+          if (args.compileOnly) Applicative[F].unit
+          else Files.executeExecutable(cachedExecutableDirectory, args.scriptArgs)
         case Cache.NewCachedValue(cachedExecutableDirectory, fileContentSha) => 
+          // Resource.eval(Sync[F].delay(Paths.get("test"))).use{ tempFolder => 
           fs2.io.file.Files[F].tempDirectory().use{tempFolder => 
             val stageDir = tempFolder.resolve("target").resolve("universal").resolve("stage")
             Files.createInFolder(tempFolder, config, parsed._2) >>
@@ -95,11 +101,14 @@ object Command {
               Applicative[F].unit
             ) >>
             fs2.io.file.Files[F].createDirectories(cachedExecutableDirectory.getParent()) >>
-            fs2.io.file.Files[F].move(stageDir, cachedExecutableDirectory) >>
-            Files.executeExecutable(
-              cachedExecutableDirectory,
-              args.scriptArgs
-            )
+            fs2.io.file.Files[F].move(stageDir, cachedExecutableDirectory) >> {
+              if (args.compileOnly) Applicative[F].unit
+              else 
+                Files.executeExecutable(
+                  cachedExecutableDirectory,
+                  args.scriptArgs
+                )
+            }
           }
         }
       } yield ()
@@ -108,7 +117,9 @@ object Command {
 }
 
 case class Arguments(catsScriptArgs: List[String], fileOrCommand: String, scriptArgs: List[String]){
-  def verbose: Boolean = catsScriptArgs.exists(_ == "--verbose")
+  val verbose: Boolean = catsScriptArgs.exists(_ == "--verbose")
+  val noCache: Boolean = catsScriptArgs.exists(_ == "--no-cache")
+  val compileOnly: Boolean = catsScriptArgs.exists(_ == "--compile-only")
   override def toString: String = s"Arguments(catscriptArgs=$catsScriptArgs, fileOrCommand=$fileOrCommand, scriptArgs=$scriptArgs)"
 }
 object Arguments {
@@ -147,6 +158,7 @@ object Parser {
     }
     val lines = fs2.Stream(text)
       .through(fs2.text.lines)
+
     val headersLines = lines
       .takeWhile(_.startsWith("//"))
       .filter(x => x.contains(":")) // Comments are allowed that dont follow x:z
@@ -160,7 +172,6 @@ object Parser {
         (header, value)
     }
     val restText = lines
-      .dropWhile(_.startsWith("//"))
       .intersperse("\n")
       .compile
       .string
@@ -256,8 +267,7 @@ object Files {
     val nameAsClass = config.name.replaceAll("\\s", "")
     config.interpreter match {
       case Config.Interpreter.IOAppSimple => 
-        s"""
-        |object $nameAsClass extends cats.effect.IOApp.Simple {
+        s"""object $nameAsClass extends cats.effect.IOApp.Simple {
         |$script
         |}
         |""".stripMargin
@@ -267,8 +277,7 @@ object Files {
         |}
         |""".stripMargin
       case Config.Interpreter.App => 
-          s"""object $nameAsClass {
-          |def main(args: Array[String]): Unit = {
+          s"""object $nameAsClass {;def main(args: Array[String]): Unit = {
           |$script
           |} 
           |}
