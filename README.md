@@ -9,16 +9,7 @@
 
 ```sh
 # Coursier and SBT are Pre-requisites
-cs install --channel https://git.io/JODPU catscript
-# Longer Form 
-cs install --channel https://gist.githubusercontent.com/ChristopherDavenport/82b779ed43f779d7db05d4382677bec5/raw/catscript.json catscript
-
-
-# Manually
-cs fetch io.chrisdavenport:catscript_2.13:latest.release
-cs bootstrap io.chrisdavenport:catscript_2.13:latest.release -o catscript
-# Catscript is now an executable in this directory, place to a location on $PATH
-
+cs install --contrib catscript
 
 # Example Full Installation From Scratch
 curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)"
@@ -26,7 +17,7 @@ chmod +x cs
 ./cs install cs
 cs update cs
 cs install sbt-launcher
-cs install --channel https://git.io/JODPU catscript
+cs install --contrib catscript
 ```
 
 Then write apps as simply as
