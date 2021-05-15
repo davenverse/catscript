@@ -1,6 +1,6 @@
 val Scala213 = "2.13.5"
 
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.0.0-RC2")
+ThisBuild / crossScalaVersions := Seq(Scala213, "3.0.0")
 ThisBuild / scalaVersion := crossScalaVersions.value.last
 
 ThisBuild / githubWorkflowArtifactUpload := false
@@ -59,11 +59,11 @@ ThisBuild / githubWorkflowPublish := Seq(
 )
 
 
-val catsV = "2.6.0"
-val catsEffectV = "3.1.0"
-val fs2V = "3.0.1"
+val catsV = "2.6.1"
+val catsEffectV = "3.1.1"
+val fs2V = "3.0.3"
 
-val munitCatsEffectV = "1.0.2"
+val munitCatsEffectV = "1.0.3"
 
 val kindProjectorV = "0.11.3"
 val betterMonadicForV = "0.3.1"
@@ -80,45 +80,6 @@ lazy val core = project.in(file("core"))
   .settings(
     name := "catscript",
   )
-
-lazy val site = project.in(file("site"))
-  .disablePlugins(MimaPlugin)
-  .enablePlugins(MicrositesPlugin)
-  .enablePlugins(MdocPlugin)
-  .enablePlugins(NoPublishPlugin)
-  .settings(commonSettings)
-  .dependsOn(core)
-  .settings{
-    import microsites._
-    Seq(
-      micrositeName := "catscript",
-      micrositeDescription := "Cats Scripting",
-      micrositeAuthor := "Christopher Davenport",
-      micrositeGithubOwner := "davenverse",
-      micrositeGithubRepo := "catscript",
-      micrositeBaseUrl := "/catscript",
-      micrositeDocumentationUrl := "https://www.javadoc.io/doc/io.chrisdavenport/catscript_2.13",
-      micrositeGitterChannelUrl := "ChristopherDavenport/libraries", // Feel Free to Set To Something Else
-      micrositeFooterText := None,
-      micrositeHighlightTheme := "atom-one-light",
-      micrositePalette := Map(
-        "brand-primary" -> "#3e5b95",
-        "brand-secondary" -> "#294066",
-        "brand-tertiary" -> "#2d5799",
-        "gray-dark" -> "#49494B",
-        "gray" -> "#7B7B7E",
-        "gray-light" -> "#E5E5E6",
-        "gray-lighter" -> "#F4F3F4",
-        "white-color" -> "#FFFFFF"
-      ),
-      micrositePushSiteWith := GitHub4s,
-      micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
-      micrositeExtraMdFiles := Map(
-          file("CODE_OF_CONDUCT.md")  -> ExtraMdFileConfig("code-of-conduct.md",   "page", Map("title" -> "code of conduct",   "section" -> "code of conduct",   "position" -> "100")),
-          file("LICENSE")             -> ExtraMdFileConfig("license.md",   "page", Map("title" -> "license",   "section" -> "license",   "position" -> "101"))
-      )
-    )
-  }
 
 // General Settings
 lazy val commonSettings = Seq(
