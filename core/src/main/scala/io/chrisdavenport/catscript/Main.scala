@@ -80,7 +80,7 @@ object Command {
               if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
               else Applicative[F].unit
             } >>
-              Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
+            Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
             Files.stageExecutable(tempFolder) >> {
               if (args.compileOnly) Applicative[F].unit
               else
@@ -103,7 +103,7 @@ object Command {
               if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
               else Applicative[F].unit
             } >>
-              Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
+            Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
             Files.stageExecutable[F](tempFolder) >>
             fs2.Stream(fileContentSha).through(fs2.text.utf8Encode)
               .through(fs2.io.file.Files[F].writeAll(stageDir.resolve("script_sha")))
