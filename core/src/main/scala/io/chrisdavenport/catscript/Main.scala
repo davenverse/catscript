@@ -79,8 +79,8 @@ object Command {
             {
               if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
               else Applicative[F].unit
-            } >> 
-            Files.createInFolder(tempFolder, config, parsed._2) >>
+            } >>
+              Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
             Files.stageExecutable(tempFolder) >> {
               if (args.compileOnly) Applicative[F].unit
               else
@@ -103,7 +103,7 @@ object Command {
               if (args.verbose) console.println(s"SBT Project Output: $tempFolder") 
               else Applicative[F].unit
             } >>
-            Files.createInFolder(tempFolder, config, parsed._2) >>
+              Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
             Files.stageExecutable[F](tempFolder) >>
             fs2.Stream(fileContentSha).through(fs2.text.utf8Encode)
               .through(fs2.io.file.Files[F].writeAll(stageDir.resolve("script_sha")))
@@ -135,6 +135,8 @@ case class Arguments(catsScriptArgs: List[String], fileOrCommand: String, script
   val compileOnly: Boolean = catsScriptArgs.exists(_ == "--compile-only")
   private val sbtOutputPattern: scala.util.matching.Regex = "--sbt-output=(.*)".r
   val sbtOutput: Option[String] = catsScriptArgs.collectFirstSome(s => sbtOutputPattern.findFirstMatchIn(s).map(_.group(1)))
+  private val sbtBuildFilePattern: scala.util.matching.Regex = "--sbt-file=(.*)".r
+  val sbtFile: Option[String] = catsScriptArgs.collectFirstSome(s => sbtBuildFilePattern.findFirstMatchIn(s).map(_.group(1)))
 
   override def toString: String = s"Arguments(catscriptArgs=$catsScriptArgs, fileOrCommand=$fileOrCommand, scriptArgs=$scriptArgs)"
 }
@@ -312,19 +314,30 @@ object Files {
     ).compile.drain
   }
 
-  def createInFolder[F[_]: Async](sbtFolder: java.nio.file.Path, config: Config, script: String): F[Unit] = {
+  def copyFile[F[_]: Async](from: java.nio.file.Path, to: java.nio.file.Path): F[Unit] = {
+    fs2.io.file.Files[F].deleteIfExists(to) >>
+      fs2.io.file.Files[F].copy(from, to)
+        .void
+  }
+  def createInFolder[F[_]: Async](sbtFolder: java.nio.file.Path, config: Config, script: String, buildFilePath: Option[Path]): F[Unit] = {
     val files = fs2.io.file.Files[F]
     val buildFile = Files.buildFile(config)
     val buildProperties = Files.buildProperties(config)
     val plugins = Files.pluginsFile(config)
     val main = Files.main(config, script)
+    val sbtBuildPath = Paths.get(sbtFolder.toString, "build.sbt")
     for {
       _ <- files.exists(sbtFolder).ifM(
         Applicative[F].unit,
         files.createDirectory(sbtFolder).void
       )
-      _ <- writeFile(Paths.get(sbtFolder.toString(), "build.sbt"), buildFile)
-
+      _ <- buildFilePath match {
+        case Some(p) => files.exists(p).ifM(
+          copyFile(p, sbtBuildPath),
+          (new RuntimeException("existing build.sbt file specified to use does not exist") with scala.util.control.NoStackTrace).raiseError
+        )
+        case None => writeFile(sbtBuildPath, buildFile)
+      }
       project = Paths.get(sbtFolder.toString(), "project")
       _ <- files.exists(project).ifM(
         Applicative[F].unit, 
@@ -358,7 +371,7 @@ object Files {
           val standardOut = soStage.toList
           standardOut.traverse_[F, Unit](s => 
             cats.effect.std.Console.make[F].println(s)
-          ) >> (new RuntimeException("sbt stage failed") with scala.util.control.NoStackTrace).raiseError
+          ) >> (new RuntimeException("sbt stage failed, is enablePlugins(JavaAppPackaging) in your build.sbt file?") with scala.util.control.NoStackTrace).raiseError
       }
       case _ => 
         val standardOut = soCompile.toList
