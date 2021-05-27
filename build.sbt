@@ -1,6 +1,6 @@
 val Scala213 = "2.13.5"
 
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.0.0-RC3")
+ThisBuild / crossScalaVersions := Seq(Scala213, "3.0.0-RC2")
 ThisBuild / scalaVersion := crossScalaVersions.value.last
 
 ThisBuild / githubWorkflowArtifactUpload := false
@@ -61,7 +61,7 @@ ThisBuild / githubWorkflowPublish := Seq(
 
 val catsV = "2.6.0"
 val catsEffectV = "3.1.0"
-val fs2V = "3.0.2"
+val fs2V = "3.0.1"
 
 val munitCatsEffectV = "1.0.2"
 
