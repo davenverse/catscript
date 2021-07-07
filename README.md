@@ -25,8 +25,8 @@ Then write apps as simply as
 ```scala
 #!/usr/bin/env catscript
 // interpreter: IOApp.Simple
-// scala: 3.0.0-RC2
-// dependency: "org.http4s" %% "http4s-ember-client" % "1.0.0-M21"
+// scala: 3.0.0
+// dependency: "org.http4s" %% "http4s-ember-client" % "0.23.0-RC1"
 
 import cats.effect._
 import cats.effect.std.Console
@@ -60,7 +60,7 @@ Args are whatever you invoke the file with and should work correctly.
 ```scala
 #!./usr/bin/env catscript
 // interpreter: IOApp
-// scala: 3.0.0-RC2
+// scala: 3.0.0
 
 import cats.effect._
 import cats.effect.std.Console
@@ -77,7 +77,7 @@ Works like a worksheet, entire script is within `def main(args: Array[String]): 
 ```scala
 #!./usr/bin/env catscript
 // interpreter: App
-// scala: 3.0.0-RC2
+// scala: 3.0.0
 
 println("Hi There!")
 ```
@@ -91,7 +91,7 @@ depend on the version of scala whether or not those are allowed.
 ```scala
 #!./usr/bin/env catscript
 // interpreter: Raw
-// scala: 3.0.0-RC2
+// scala: 3.0.0
 
 object Main {
   def main(args: Array[String]): Unit = {

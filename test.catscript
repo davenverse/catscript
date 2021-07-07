@@ -1,7 +1,7 @@
 #!./core/target/universal/stage/bin/catscript
 // interpreter: IOApp.Simple
-// scala: 3.0.0-RC2
-// dependency: "org.http4s" %% "http4s-ember-client" % "1.0.0-M21"
+// scala: 3.0.0
+// dependency: "org.http4s" %% "http4s-ember-client" % "0.23.0-RC1"
 
 import cats.effect._
 import cats.effect.std.Console
