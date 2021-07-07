@@ -122,6 +122,7 @@ object Main {
 - `--no-cache` - Disables caching will recreate every time.
 - `--compile-only` - Does not execute the resulting executable. (Useful to confirm compilation)
 - `--sbt-output` - Puts the produced sbt project in this location rather than a temporary directory. (This is editor compliant and should allow you to debug with editor support and then bring your findings back to a script.)
+- `--sbt-file` - Allows you to specify a `Build.sbt` file location to use with the script. this will ignore script headers.
 
 ### VSCode Highlighting
 
