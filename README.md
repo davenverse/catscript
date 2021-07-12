@@ -37,6 +37,19 @@ def run: IO[Unit] = Console[IO].println("Hello world!!!")
 SheBangs are optional, but make it so you can execute the files, rather than invoke
 the interpreter on the file, which I find useful.
 
+You can also write them for a specific version without installing catscript with the shebang directly if you have coursier installed.
+
+```scala
+#!/usr/bin/env cs launch io.chrisdavenport::catscript:0.1.1 --
+// interpreter: IOApp.Simple
+// scala: 3.0.0
+
+import cats.effect._
+import cats.effect.std.Console
+
+def run: IO[Unit] = Console[IO].println("Hello world!!!")
+```
+
 ### Available Interpreters
 
 Defaults to `IOApp.Simple`. Headers section is terminated by the first line which does not start with `//` excluding the `#!`
