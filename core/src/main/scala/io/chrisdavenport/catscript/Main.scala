@@ -11,6 +11,8 @@ import cats.ApplicativeThrow
 import java.nio.file.Path
 import scodec.bits.ByteVector
 import scala.util.control.NoStackTrace
+import fs2.text
+import fs2.text
 
 object Main extends IOApp {
   val console = cats.effect.std.Console.make[IO]
@@ -63,7 +65,7 @@ object Command {
     case Script => for {
       filePath <- Sync[F].delay(Paths.get(args.fileOrCommand))
       fileContent <- fs2.io.file.Files[F].readAll(filePath, 512)
-        .through(fs2.text.utf8Decode)
+        .through(text.utf8.decode)
         .compile
         .string
       parsed <- Parser.simpleParser(fileContent).liftTo[F]
@@ -105,7 +107,7 @@ object Command {
             } >>
             Files.createInFolder(tempFolder, config, parsed._2, args.sbtFile.map(Paths.get(_))) >>
             Files.stageExecutable[F](tempFolder) >>
-            fs2.Stream(fileContentSha).through(fs2.text.utf8Encode)
+            fs2.Stream(fileContentSha).through(text.utf8.encode)
               .through(fs2.io.file.Files[F].writeAll(stageDir.resolve("script_sha")))
               .compile
               .drain >>
@@ -308,7 +310,7 @@ object Files {
     fs2.io.file.Files[F].deleteIfExists(file) >>
     fs2.Stream(text)
     .covary[F]
-    .through(fs2.text.utf8Encode)
+    .through(text.utf8.encode)
     .through(
       fs2.io.file.Files[F].writeAll(file) //List(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
     ).compile.drain
@@ -421,7 +423,7 @@ object Cache {
           fs2.io.file.Files[F].exists(shaFile).ifM(
             {
               for {
-                scriptSha <- fs2.io.file.Files[F].readAll(shaFile, 4096).through(fs2.text.utf8Decode).compile.string
+                scriptSha <- fs2.io.file.Files[F].readAll(shaFile, 4096).through(text.utf8.decode).compile.string
                 testSha <- Sync[F].delay{
                   val SHA1 = MessageDigest.getInstance("SHA-1")
                   ByteVector.view(SHA1.digest(fileContent.getBytes())).toHex
