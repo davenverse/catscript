@@ -276,7 +276,7 @@ object Files {
 
   // project/plugins.sbt
   def pluginsFile(config: Config) =
-    s"""addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.7.6") // Used for script for args passing
+    s"""addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.1") // Used for script for args passing
     |
     |${config.sbtPlugins.map(s => s"addSbtPlugin($s)").intercalate("\n")}
     |""".stripMargin
