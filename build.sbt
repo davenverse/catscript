@@ -7,7 +7,7 @@ val catsV = "2.6.1"
 val catsEffectV = "3.1.1"
 val fs2V = "3.0.6"
 
-val munitCatsEffectV = "1.0.5"
+val munitCatsEffectV = "1.0.7"
 
 // Projects
 lazy val `catscript` = project.in(file("."))
