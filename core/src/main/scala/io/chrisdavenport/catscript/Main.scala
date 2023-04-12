@@ -233,7 +233,7 @@ object Config {
 
   // TODO Interpreter
   def configFromHeaders(headers: List[(String, String)]): Config = {
-    val scala = headers.findLast(_._1.toLowerCase() === "scala").map(_._2.trim()).getOrElse("2.13.5")
+    val scala = headers.findLast(_._1.toLowerCase() === "scala").map(_._2.trim()).getOrElse("2.13.10")
     val sbt = headers.findLast(_._1.toLowerCase() === "sbt").map(_._2.trim()).getOrElse("1.5.0")
     val interpreter = headers.findLast(_._1.toLowerCase() === "interpreter")
       .map(_._2.trim())
