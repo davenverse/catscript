@@ -253,7 +253,7 @@ object Files {
 
   // build.sbt
   def buildFile(config: Config): String = {
-    val fs2 = """libraryDependencies += "co.fs2" %% "fs2-io" % "3.0.6""""
+    val fs2 = """libraryDependencies += "co.fs2" %% "fs2-io" % "3.7.0""""
     val fs2Maybe = config.interpreter match {
       case Config.Interpreter.IOApp => fs2
       case Config.Interpreter.IOAppSimple => fs2
