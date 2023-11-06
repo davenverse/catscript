@@ -5,7 +5,7 @@ ThisBuild / scalaVersion := Scala213
 
 val catsV = "2.6.1"
 val catsEffectV = "3.1.1"
-val fs2V = "3.0.6"
+val fs2V = "3.9.3"
 
 val munitCatsEffectV = "1.0.5"
 
