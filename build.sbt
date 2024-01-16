@@ -4,7 +4,7 @@ ThisBuild / crossScalaVersions := Seq(Scala213, "3.0.0")
 ThisBuild / scalaVersion := Scala213
 
 val catsV = "2.6.1"
-val catsEffectV = "3.1.1"
+val catsEffectV = "3.5.3"
 val fs2V = "3.0.6"
 
 val munitCatsEffectV = "1.0.5"
