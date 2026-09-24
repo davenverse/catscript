@@ -12,7 +12,7 @@ ThisBuild / developers := List(
 ThisBuild / tlCiReleaseBranches := Seq("main")
 
 val Scala213tl = "2.13.18"
-ThisBuild / crossScalaVersions := Seq("2.12.20", Scala213tl, "3.3.8")
+ThisBuild / crossScalaVersions := Seq( Scala213tl, "3.3.8")
 ThisBuild / scalaVersion := Scala213tl
 
 // Compiler settings DavenversePlugin injected globally. sbt-typelevel-ci-release
