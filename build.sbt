@@ -8,8 +8,9 @@ ThisBuild / developers := List(
   tlGitHubDev("christopherdavenport", "Christopher Davenport")
 )
 
-// sbt-davenverse published a snapshot from main on every push; preserve that.
-ThisBuild / tlCiReleaseBranches := Seq("main")
+// sbt-davenverse published a snapshot from main on every push. Dropped: the
+// Central Portal will not enable snapshots for the io.chrisdavenport namespace.
+ThisBuild / tlCiReleaseBranches := Seq()
 
 val Scala213tl = "2.13.18"
 ThisBuild / crossScalaVersions := Seq( Scala213tl, "3.3.8")
