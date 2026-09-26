@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "0.2" // current series x.y
+ThisBuild / tlBaseVersion := "0.3" // current series x.y
 
 ThisBuild / organization := "io.chrisdavenport"
 ThisBuild / organizationName := "Christopher Davenport"
@@ -13,7 +13,7 @@ ThisBuild / developers := List(
 ThisBuild / tlCiReleaseBranches := Seq()
 
 val Scala213tl = "2.13.18"
-ThisBuild / crossScalaVersions := Seq( Scala213tl, "3.3.8")
+ThisBuild / crossScalaVersions := Seq(Scala213tl, "3.3.8")
 ThisBuild / scalaVersion := Scala213tl
 
 // Compiler settings DavenversePlugin injected globally. sbt-typelevel-ci-release
@@ -33,14 +33,14 @@ ThisBuild / scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) m
   case _ => Nil
 })
 
-val Scala213 = "2.13.5"
+val Scala213 = "2.13.18"
 
 
-val catsV = "2.6.1"
-val catsEffectV = "3.1.1"
-val fs2V = "3.0.6"
+val catsV = "2.13.0"
+val catsEffectV = "3.7.1"
+val fs2V = "3.14.0"
 
-val munitCatsEffectV = "1.0.5"
+val munitCatsEffectV = "2.2.1"
 
 // Projects
 lazy val `catscript` = project.in(file("."))
@@ -83,6 +83,6 @@ lazy val commonSettings = Seq(
     "co.fs2"                      %% "fs2-core"                   % fs2V,
     "co.fs2"                      %% "fs2-io"                     % fs2V,
 
-    "org.typelevel"               %% "munit-cats-effect-3"        % munitCatsEffectV         % Test,
+    "org.typelevel"               %% "munit-cats-effect"        % munitCatsEffectV         % Test,
   )
 )
